@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "843569560650",
+    "project_id": "ooriba-s3-intern",
+    "storage_bucket": "ooriba-s3-intern.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:843569560650:android:256320fa0746ea943d3ab3",
+        "android_client_info": {
+          "package_name": "com.example.ooriba_s3"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAJHP_4OhHw-912pThMjcb3RY0feAiaLdw"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
