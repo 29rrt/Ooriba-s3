@@ -3,7 +3,6 @@ import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:flutter/material.dart';
-
 import 'services/auth_service.dart';
 import 'services/firestore_service.dart';
 

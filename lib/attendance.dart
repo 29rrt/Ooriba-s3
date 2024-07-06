@@ -1,7 +1,9 @@
+import 'dart:convert';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
 import 'package:intl/intl.dart';
-import 'services/hrDashboardService.dart'; // For formatting date
-// import 'date_service.dart'; // Import the service file
+import 'services/firestore_service.dart';
 
 class DatePickerButton extends StatefulWidget {
   @override
@@ -29,11 +31,83 @@ class _DatePickerButtonState extends State<DatePickerButton> {
   }
 
   void _fetchData(String date) async {
-    DateService service = DateService();
+    FirestoreService service = FirestoreService();
+    print("Fetching data for date: $date"); // Debug statement
     Map<String, Map<String, String>> data = await service.getDataByDate(date);
+    print("Data fetched: $data"); // Debug statement
+
     setState(() {
       _data = data;
     });
+
+    for (var entry in data.entries) {
+      if (entry.value['checkIn'] != null) {
+        _sendCheckInEmail(entry.key, entry.value['checkIn']!);
+      }
+      if (entry.value['checkOut'] != null) {
+        _sendCheckOutEmail(entry.key, entry.value['checkOut']!);
+      }
+    }
+  }
+
+  Future<void> _sendCheckInEmail(String email, String checkInTime) async {
+    const serviceId = 'service_qe69w28';
+    const templateId = 'template_1owmygk';
+    const userId = 'lMYaM2NpLYjm2qSWI';
+    final url = Uri.parse('https://api.emailjs.com/api/v1.0/email/send');
+
+    final response = await http.post(
+      url,
+      headers: {
+        'origin': 'http://localhost',
+        'Content-Type': 'application/json',
+      },
+      body: jsonEncode({
+        'service_id': serviceId,
+        'template_id': templateId,
+        'user_id': userId,
+        'template_params': {
+          'empemail': email,
+          'check_in_time': checkInTime,
+        },
+      }),
+    );
+
+    if (response.statusCode == 200) {
+      print('Check-in email sent successfully for $email at $checkInTime!'); // Debug statement
+    } else {
+      print('Failed to send check-in email for $email: ${response.body}'); // Debug statement
+    }
+  }
+
+  Future<void> _sendCheckOutEmail(String email, String checkOutTime) async {
+    const serviceId = 'service_qe69w28';
+    const templateId = 'template_ikcen39';
+    const userId = 'lMYaM2NpLYjm2qSWI';
+    final url = Uri.parse('https://api.emailjs.com/api/v1.0/email/send');
+
+    final response = await http.post(
+      url,
+      headers: {
+        'origin': 'http://localhost',
+        'Content-Type': 'application/json',
+      },
+      body: jsonEncode({
+        'service_id': serviceId,
+        'template_id': templateId,
+        'user_id': userId,
+        'template_params': {
+          'empemail': email,
+          'check_out_time': checkOutTime,
+        },
+      }),
+    );
+
+    if (response.statusCode == 200) {
+      print('Check-out email sent successfully for $email at $checkOutTime!'); // Debug statement
+    } else {
+      print('Failed to send check-out email for $email: ${response.body}'); // Debug statement
+    }
   }
 
   @override
@@ -56,8 +130,7 @@ class _DatePickerButtonState extends State<DatePickerButton> {
                 Map<String, String> emailData = _data[email]!;
 
                 return Card(
-                  margin:
-                      const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                   child: ListTile(
                     title: Text(email),
                     subtitle: Column(
@@ -66,12 +139,8 @@ class _DatePickerButtonState extends State<DatePickerButton> {
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            Expanded(
-                                child:
-                                    Text('Check-in: ${emailData['checkIn']}')),
-                            Expanded(
-                                child: Text(
-                                    'Check-out: ${emailData['checkOut']}')),
+                            Expanded(child: Text('Check-in: ${emailData['checkIn']}')),
+                            Expanded(child: Text('Check-out: ${emailData['checkOut']}')),
                           ],
                         ),
                         const SizedBox(height: 4),
@@ -83,8 +152,8 @@ class _DatePickerButtonState extends State<DatePickerButton> {
                                 style: TextStyle(color: Colors.black),
                               ),
                               TextSpan(
-                                text: 'present',
-                                style: const TextStyle(color: Colors.green),
+                                text: emailData['checkOut'] != null ? 'present' : 'absent',
+                                style: TextStyle(color: emailData['checkOut'] != null ? Colors.green : Colors.red),
                               ),
                             ],
                           ),
@@ -93,14 +162,6 @@ class _DatePickerButtonState extends State<DatePickerButton> {
                     ),
                   ),
                 );
-                // },
-
-                // return Card(
-                //   child: ListTile(
-                //     title: Text(email),
-                //     subtitle: Text('Check-in: ${emailData['checkIn']}\nCheck-out: ${emailData['checkOut']}'),
-                //   ),
-                // );
               },
             ),
           ),

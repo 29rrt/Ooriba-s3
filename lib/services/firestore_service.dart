@@ -1,23 +1,33 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:intl/intl.dart';
 
 class FirestoreService {
   final FirebaseFirestore _db = FirebaseFirestore.instance;
 
-  Future<Map<String, dynamic>> getDataByDate(String date) async {
-    try {
-      DocumentSnapshot<Map<String, dynamic>> snapshot =
-          await _db.collection('Dates').doc(date).get();
-
-      if (snapshot.exists) {
-        return snapshot.data() ?? {};
-      } else {
-        return {};
-      }
-    } catch (e) {
-      print('Error fetching data: $e');
-      return {};
-    }
+  Future<void> addCheckInOutData(String email, DateTime checkIn, DateTime checkOut, DateTime date) async {
+    await _db.collection('attendance').doc(email + '_' + DateFormat('yyyy-MM-dd').format(date)).set({
+      'email': email,
+      'date': DateFormat('yyyy-MM-dd').format(date),
+      'checkIn': checkIn,
+      'checkOut': checkOut,
+    }, SetOptions(merge: true));
   }
 
-  addCheckInOutData(String empemail, DateTime dateTime, DateTime dateTime2, DateTime dataDate) {}
+  Future<Map<String, Map<String, String>>> getDataByDate(String date) async {
+    Map<String, Map<String, String>> data = {};
+
+    QuerySnapshot snapshot = await _db
+        .collection('attendance')
+        .where('date', isEqualTo: date)
+        .get();
+
+    for (var doc in snapshot.docs) {
+      data[doc['email']] = {
+        'checkIn': (doc['checkIn'] as Timestamp).toDate().toIso8601String(),
+        'checkOut': (doc['checkOut'] as Timestamp).toDate().toIso8601String(),
+      };
+    }
+
+    return data;
+  }
 }

@@ -3,6 +3,8 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:provider/provider.dart';
 import 'services/company_name_service.dart';
 import 'services/location_service.dart';
+import 'services/department_service.dart';
+import 'services/leave_type_service.dart';
 
 class StandardSettingsPage extends StatefulWidget {
   @override
@@ -15,16 +17,27 @@ class _StandardSettingsPageState extends State<StandardSettingsPage> {
   final TextEditingController _locationPrefixController = TextEditingController();
   final TextEditingController _locationLatController = TextEditingController();
   final TextEditingController _locationLngController = TextEditingController();
+  final TextEditingController _departmentController = TextEditingController();
+  final TextEditingController _leaveTypeController = TextEditingController();
+
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   List<Map<String, dynamic>> _locations = [];
+  List<String> _departments = [];
+  List<String> _leaveTypes = [];
   late LocationService _locationService;
+  late DepartmentService _departmentService;
+  late LeaveTypeService _leaveTypeService;
 
   @override
   void initState() {
     super.initState();
     _locationService = LocationService();
+    _departmentService = DepartmentService();
+    _leaveTypeService = LeaveTypeService();
     _loadCompanyName();
     _loadLocations();
+    _loadDepartments();
+    _loadLeaveTypes();
   }
 
   Future<void> _loadCompanyName() async {
@@ -45,6 +58,20 @@ class _StandardSettingsPageState extends State<StandardSettingsPage> {
           'coordinates': doc['coordinates'],
         };
       }).toList();
+    });
+  }
+
+  Future<void> _loadDepartments() async {
+    List<String> departments = await _departmentService.getDepartments();
+    setState(() {
+      _departments = departments;
+    });
+  }
+
+  Future<void> _loadLeaveTypes() async {
+    List<String> leaveTypes = await _leaveTypeService.getLeaveTypes();
+    setState(() {
+      _leaveTypes = leaveTypes;
     });
   }
 
@@ -93,6 +120,44 @@ class _StandardSettingsPageState extends State<StandardSettingsPage> {
     });
   }
 
+  Future<void> _addDepartment() async {
+    String departmentName = _departmentController.text;
+
+    await _departmentService.addDepartment(departmentName);
+
+    setState(() {
+      _departments.add(departmentName);
+      _departmentController.clear();
+    });
+  }
+
+  Future<void> _deleteDepartment(String name) async {
+    await _departmentService.deleteDepartment(name);
+
+    setState(() {
+      _departments.removeWhere((department) => department == name);
+    });
+  }
+
+  Future<void> _addLeaveType() async {
+    String leaveTypeName = _leaveTypeController.text;
+
+    await _leaveTypeService.addLeaveType(leaveTypeName);
+
+    setState(() {
+      _leaveTypes.add(leaveTypeName);
+      _leaveTypeController.clear();
+    });
+  }
+
+  Future<void> _deleteLeaveType(String name) async {
+    await _leaveTypeService.deleteLeaveType(name);
+
+    setState(() {
+      _leaveTypes.removeWhere((leaveType) => leaveType == name);
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -101,67 +166,118 @@ class _StandardSettingsPageState extends State<StandardSettingsPage> {
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
-        child: Column(
-          children: <Widget>[
-            TextField(
-              controller: _companyNameController,
-              decoration: const InputDecoration(labelText: 'Company Name'),
-            ),
-            const SizedBox(height: 20),
-            ElevatedButton(
-              onPressed: () async {
-                await _saveCompanyName();
-              },
-              child: const Text('Save'),
-            ),
-            const SizedBox(height: 20),
-            TextField(
-              controller: _locationNameController,
-              decoration: const InputDecoration(labelText: 'Location Name'),
-            ),
-            TextField(
-              controller: _locationPrefixController,
-              decoration: const InputDecoration(labelText: 'Location Prefix'),
-            ),
-            TextField(
-              controller: _locationLatController,
-              decoration: const InputDecoration(labelText: 'Latitude'),
-            ),
-            TextField(
-              controller: _locationLngController,
-              decoration: const InputDecoration(labelText: 'Longitude'),
-            ),
-            const SizedBox(height: 20),
-            ElevatedButton(
-              onPressed: () async {
-                await _addLocation();
-              },
-              child: const Text('Add Location'),
-            ),
-            const SizedBox(height: 20),
-            Expanded(
-              child: ListView.builder(
-                itemCount: _locations.length,
-                itemBuilder: (context, index) {
-                  final location = _locations[index];
-                  return ListTile(
-                    title: Text(location['name']),
-                    subtitle: Text(
-                      'Prefix: ${location['prefix']}\nCoordinates: ${location['coordinates'].latitude}, ${location['coordinates'].longitude}',
-                    ),
-                    trailing: IconButton(
-                      icon: const Icon(Icons.delete),
-                      onPressed: () async {
-                        await _deleteLocation(location['name']);
-                      },
-                    ),
-                  );
-                },
+        child: SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: <Widget>[
+              const Text(
+                'Company Name',
+                style: TextStyle(fontSize: 30, fontWeight: FontWeight.bold),
               ),
-            ),
-          ],
+              TextField(
+                controller: _companyNameController,
+                decoration: const InputDecoration(labelText: 'Company Name'),
+              ),
+              const SizedBox(height: 10),
+              ElevatedButton(
+                onPressed: () async {
+                  await _saveCompanyName();
+                },
+                child: const Text('Save'),
+              ),
+              const SizedBox(height: 20),
+              const Text(
+                'Locations',
+                style: TextStyle(fontSize: 30, fontWeight: FontWeight.bold),
+              ),
+              TextField(
+                controller: _locationNameController,
+                decoration: const InputDecoration(labelText: 'Location Name'),
+              ),
+              TextField(
+                controller: _locationPrefixController,
+                decoration: const InputDecoration(labelText: 'Location Prefix'),
+              ),
+              TextField(
+                controller: _locationLatController,
+                decoration: const InputDecoration(labelText: 'Latitude'),
+              ),
+              TextField(
+                controller: _locationLngController,
+                decoration: const InputDecoration(labelText: 'Longitude'),
+              ),
+              const SizedBox(height: 10),
+              ElevatedButton(
+                onPressed: () async {
+                  await _addLocation();
+                },
+                child: const Text('Add Location'),
+              ),
+              const SizedBox(height: 10),
+              _buildListView(_locations, 'Locations', _deleteLocation),
+              const SizedBox(height: 20),
+              const Text(
+                'Departments',
+                style: TextStyle(fontSize: 30, fontWeight: FontWeight.bold),
+              ),
+              TextField(
+                controller: _departmentController,
+                decoration: const InputDecoration(labelText: 'Department'),
+              ),
+              const SizedBox(height: 10),
+              ElevatedButton(
+                onPressed: () async {
+                  await _addDepartment();
+                },
+                child: const Text('Add Department'),
+              ),
+              const SizedBox(height: 10),
+              _buildListView(_departments, 'Departments', _deleteDepartment),
+              const SizedBox(height: 20),
+              const Text(
+                'Leave Types',
+                style: TextStyle(fontSize: 30, fontWeight: FontWeight.bold),
+              ),
+              TextField(
+                controller: _leaveTypeController,
+                decoration: const InputDecoration(labelText: 'Leave Type'),
+              ),
+              const SizedBox(height: 10),
+              ElevatedButton(
+                onPressed: () async {
+                  await _addLeaveType();
+                },
+                child: const Text('Add Leave Type'),
+              ),
+              const SizedBox(height: 10),
+              _buildListView(_leaveTypes, 'Leave Types', _deleteLeaveType),
+            ],
+          ),
         ),
       ),
+    );
+  }
+
+  Widget _buildListView(List items, String label, Function(String) deleteFunction) {
+    return ListView.builder(
+      shrinkWrap: true,
+      physics: NeverScrollableScrollPhysics(),
+      itemCount: items.length,
+      itemBuilder: (context, index) {
+        final item = items[index];
+        return ListTile(
+          title: item is String ? Text(item) : Text(item['name']),
+          subtitle: item is Map ? Text(
+            'Prefix: ${item['prefix']}\nCoordinates: ${item['coordinates'].latitude}, ${item['coordinates'].longitude}',
+          ) : null,
+          trailing: IconButton(
+            icon: const Icon(Icons.delete),
+            onPressed: () async {
+              await deleteFunction(item is String ? item : item['name']);
+            },
+          ),
+        );
+      },
     );
   }
 }
