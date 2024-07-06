@@ -8,7 +8,7 @@ import 'hr_dashboard_page.dart';
 import 'services/auth_service.dart';
 import 'services/dark_mode.dart';
 import 'signup_page.dart';
-import 'admin.dart';  // Import the admin.dart file
+import 'admin_dashboard_page.dart';  // Import the admin.dart file
 import 'services/company_name_service.dart';
 
 void main() async {
