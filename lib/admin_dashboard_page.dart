@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:provider/provider.dart';
 import 'package:location/location.dart';
+import 'BroadcastMessagePage.dart';
 import 'admin_employee_details.dart';
 import 'registered_employees_page[1].dart';
 import 'services/auth_service.dart';
@@ -11,6 +12,7 @@ import 'services/registered_service.dart';
 import 'services/company_name_service.dart';
 import 'upcoming_events_page.dart';
 import 'standard_settings_page.dart'; // Import the Standard Settings page
+
 
 class AdminDashboardPage extends StatefulWidget {
   const AdminDashboardPage({Key? key}) : super(key: key);
@@ -107,6 +109,17 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
                 Navigator.push(
                   context,
                   MaterialPageRoute(builder: (context) => UpcomingEventsPage()),
+                );
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.message),
+              title: const Text('Broadcast Message'),
+              onTap: () {
+                Navigator.pop(context);
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => BroadcastMessagePage()),
                 );
               },
             ),
