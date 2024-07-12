@@ -1,6 +1,6 @@
-import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:flutter/material.dart';
+import 'services/broadcast_service.dart'; // Replace with the actual path
 
 class BroadcastMessagePage extends StatefulWidget {
   @override
@@ -9,85 +9,30 @@ class BroadcastMessagePage extends StatefulWidget {
 
 class _BroadcastMessagePageState extends State<BroadcastMessagePage> {
   final TextEditingController _broadcastMessageController = TextEditingController();
-  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
-  final FirebaseMessaging _firebaseMessaging = FirebaseMessaging.instance;
+  final BroadcastService _broadcastService = BroadcastService();
 
   Future<void> _sendBroadcastMessage() async {
     String message = _broadcastMessageController.text;
-
-    // Send broadcast message to Firestore
-    await _firestore.collection('BroadcastMessages').add({
-      'message': message,
-      'timestamp': FieldValue.serverTimestamp(),
-    });
-
-    await _firestore.collection('CurrentBroadcast').doc('current').set({
-      'message': message,
-      'timestamp': FieldValue.serverTimestamp(),
-    });
+    await _broadcastService.sendBroadcastMessage(message);
 
     _broadcastMessageController.clear();
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text('Broadcast message sent')),
     );
-
-    // Send notification to all users
-    await _sendNotificationToUsers(message);
-  }
-
-  Future<void> _sendNotificationToUsers(String message) async {
-    // Assuming you have a topic "all_users" to which all users are subscribed
-    const String topic = 'all_users';
-
-    final response = await _firestore.collection('FCMTokens').get();
-    List<String> tokens = response.docs.map((doc) => doc.data()['token'] as String).toList();
-
-    await FirebaseMessaging.instance.subscribeToTopic(topic);
-    
-    await _firestore.collection('notifications').add({
-      'title': 'Broadcast Message',
-      'body': message,
-      'topic': topic,
-    });
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Notification sent to users')),
-    );
   }
 
   Future<void> _editBroadcastMessage(String id, String newMessage) async {
-    await _firestore.collection('BroadcastMessages').doc(id).update({
-      'message': newMessage,
-      'timestamp': FieldValue.serverTimestamp(),
-    });
-
-    await _firestore.collection('CurrentBroadcast').doc('current').set({
-      'message': newMessage,
-      'timestamp': FieldValue.serverTimestamp(),
-    });
-
+    await _broadcastService.editBroadcastMessage(id, newMessage);
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text('Broadcast message updated')),
     );
-
-    // Send notification about the edited message
-    await _sendNotificationToUsers(newMessage);
   }
 
   Future<void> _deleteBroadcastMessage(String id) async {
-    await _firestore.collection('BroadcastMessages').doc(id).delete();
-
-    await _firestore.collection('CurrentBroadcast').doc('current').set({
-      'message': 'A broadcast message has been deleted.',
-      'timestamp': FieldValue.serverTimestamp(),
-    });
-
+    await _broadcastService.deleteBroadcastMessage(id);
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text('Broadcast message deleted')),
     );
-
-    // Send notification about the deleted message
-    await _sendNotificationToUsers('A broadcast message has been deleted.');
   }
 
   void _showEditDialog(String id, String currentMessage) {
@@ -182,7 +127,10 @@ class _BroadcastMessagePageState extends State<BroadcastMessagePage> {
             ),
             Expanded(
               child: StreamBuilder<QuerySnapshot>(
-                stream: _firestore.collection('BroadcastMessages').orderBy('timestamp', descending: true).snapshots(),
+                stream: FirebaseFirestore.instance
+                    .collection('BroadcastMessages')
+                    .orderBy('timestamp', descending: true)
+                    .snapshots(),
                 builder: (context, snapshot) {
                   if (!snapshot.hasData) {
                     return const Center(child: CircularProgressIndicator());

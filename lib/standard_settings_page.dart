@@ -5,6 +5,7 @@ import 'services/company_name_service.dart';
 import 'services/location_service.dart';
 import 'services/department_service.dart';
 import 'services/leave_type_service.dart';
+import 'services/logo_service.dart';
 
 class StandardSettingsPage extends StatefulWidget {
   @override
@@ -113,6 +114,11 @@ class _StandardSettingsPageState extends State<StandardSettingsPage> {
   }
 
   Future<void> _deleteLocation(String name) async {
+    if (_locations.indexWhere((location) => location['name'] == name) < 3) {
+      _showImportantElementAlert();
+      return;
+    }
+
     await _firestore.collection('Locations').doc(name).delete();
 
     setState(() {
@@ -132,6 +138,11 @@ class _StandardSettingsPageState extends State<StandardSettingsPage> {
   }
 
   Future<void> _deleteDepartment(String name) async {
+    if (_departments.indexOf(name) < 3) {
+      _showImportantElementAlert();
+      return;
+    }
+
     await _departmentService.deleteDepartment(name);
 
     setState(() {
@@ -151,6 +162,11 @@ class _StandardSettingsPageState extends State<StandardSettingsPage> {
   }
 
   Future<void> _deleteLeaveType(String name) async {
+    if (_leaveTypes.indexOf(name) < 3) {
+      _showImportantElementAlert();
+      return;
+    }
+
     await _leaveTypeService.deleteLeaveType(name);
 
     setState(() {
@@ -158,8 +174,30 @@ class _StandardSettingsPageState extends State<StandardSettingsPage> {
     });
   }
 
+  void _showImportantElementAlert() {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('Cannot Delete'),
+          content: const Text('This element is already in use.'),
+          actions: <Widget>[
+            TextButton(
+              child: const Text('OK'),
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+            ),
+          ],
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
+    final logoService = Provider.of<LogoService>(context);
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Standard Settings'),
@@ -184,6 +222,25 @@ class _StandardSettingsPageState extends State<StandardSettingsPage> {
                   await _saveCompanyName();
                 },
                 child: const Text('Save'),
+              ),
+              const SizedBox(height: 20),
+              const Text(
+                'Company Logo',
+                style: TextStyle(fontSize: 30, fontWeight: FontWeight.bold),
+              ),
+              logoService.logo != null
+                  ? Image.file(
+                      logoService.logo!,
+                      width: 200,
+                      height: 200,
+                    )
+                  : const Text('No logo selected'),
+              const SizedBox(height: 10),
+              ElevatedButton(
+                onPressed: () async {
+                  await logoService.pickLogo();
+                },
+                child: const Text('Upload Logo'),
               ),
               const SizedBox(height: 20),
               const Text(

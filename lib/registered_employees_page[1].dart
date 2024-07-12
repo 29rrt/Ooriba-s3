@@ -238,262 +238,347 @@ class _EmployeeDetailsDialogState extends State<EmployeeDetailsDialog> {
     final accountNumber = _accountNumberController.text.trim();
     final ifscCode = _ifscCodeController.text.trim();
 
-    bool isValid = true;
     _validationErrors.clear();
 
     if (firstName.isEmpty) {
       _validationErrors['firstName'] = 'First name is required';
-      isValid = false;
     }
 
     if (lastName.isEmpty) {
       _validationErrors['lastName'] = 'Last name is required';
-      isValid = false;
     }
 
     if (phone.isEmpty) {
-      _validationErrors['phone'] = 'Phone number is required';
-      isValid = false;
+      _validationErrors['phoneNo'] = 'Phone number is required';
     }
 
     if (email.isEmpty) {
       _validationErrors['email'] = 'Email is required';
-      isValid = false;
-    }
-
-    if (panNo.isEmpty) {
-      _validationErrors['panNo'] = 'PAN number is required';
-      isValid = false;
-    }
-
-    if (password.isEmpty) {
-      _validationErrors['password'] = 'Password is required';
-      isValid = false;
     }
 
     if (permanentAddress.isEmpty) {
       _validationErrors['permanentAddress'] = 'Permanent address is required';
-      isValid = false;
     }
 
     if (residentialAddress.isEmpty) {
       _validationErrors['residentialAddress'] = 'Residential address is required';
-      isValid = false;
     }
 
     if (dob.isEmpty) {
       _validationErrors['dob'] = 'Date of birth is required';
-      isValid = false;
-    }
-
-    if (dpImageUrl.isEmpty) {
-      _validationErrors['dpImageUrl'] = 'Display picture URL is required';
-      isValid = false;
-    }
-
-    if (supportUrl.isEmpty) {
-      _validationErrors['supportUrl'] = 'Support URL is required';
-      isValid = false;
-    }
-
-    if (aadharNo.isEmpty) {
-      _validationErrors['aadharNo'] = 'Aadhar number is required';
-      isValid = false;
-    }
-
-    if (aadharImageUrl.isEmpty) {
-      _validationErrors['aadharImageUrl'] = 'Aadhar image URL is required';
-      isValid = false;
     }
 
     if (joiningDate.isEmpty) {
       _validationErrors['joiningDate'] = 'Joining date is required';
-      isValid = false;
     }
 
     if (employeeId.isEmpty) {
       _validationErrors['employeeId'] = 'Employee ID is required';
-      isValid = false;
     }
 
     if (bankName.isEmpty) {
       _validationErrors['bankName'] = 'Bank name is required';
-      isValid = false;
     }
 
     if (accountNumber.isEmpty) {
       _validationErrors['accountNumber'] = 'Account number is required';
-      isValid = false;
     }
 
     if (ifscCode.isEmpty) {
       _validationErrors['ifscCode'] = 'IFSC code is required';
-      isValid = false;
     }
 
     setState(() {});
-    return isValid;
+    return _validationErrors.isEmpty;
+  }
+
+  Future<void> _updateEmployeeData() async {
+    if (!_validateInputs()) {
+      return;
+    }
+
+    final data = {
+      'firstName': _firstNameController.text.trim(),
+      'lastName': _lastNameController.text.trim(),
+      'phoneNo': _phoneController.text.trim(),
+      'email': _emailController.text.trim(),
+      'panNo': _panController.text.trim(),
+      'password': _passwordController.text.trim(),
+      'permanentAddress': _permanentAddressController.text.trim(),
+      'residentialAddress': _residentialAddressController.text.trim(),
+      'dob': _dobController.text.trim(),
+      'dpImageUrl': _dpImageUrlController.text.trim(),
+      'supportUrl': _supportUrlController.text.trim(),
+      'aadharNo': _aadharNoController.text.trim(),
+      'aadharImageUrl': _aadharImageUrlController.text.trim(),
+      'joiningDate': _joiningDateController.text.trim(),
+      'employeeId': _employeeIdController.text.trim(),
+      'bankName': _bankNameController.text.trim(),
+      'accountNumber': _accountNumberController.text.trim(),
+      'ifscCode': _ifscCodeController.text.trim(),
+      'department': _selectedDepartment,
+      'designation': _selectedDesignation,
+      'location': _selectedLocation,
+      'status': _selectedStatus,
+      'role': _selectedRole,
+      'employeeType': _selectedEmployeeType,
+    };
+
+    try {
+      await FirebaseFirestore.instance
+          .collection('Regemp')
+          .doc(widget.data['employeeId'])
+          .update(data);
+      Navigator.of(context).pop();
+    } catch (e) {
+      print('Error updating employee data: $e');
+    }
   }
 
   @override
   Widget build(BuildContext context) {
-    return Dialog(
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16.0),
-      ),
-      child: Container(
-        padding: EdgeInsets.all(16.0),
-        child: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: <Widget>[
-              Text(
-                'Employee Details',
-                style: TextStyle(fontSize: 20.0, fontWeight: FontWeight.bold),
-              ),
-              SizedBox(height: 16.0),
-              _buildTextField(
+    return AlertDialog(
+      title: Text('Employee Details'),
+      content: SingleChildScrollView(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: <Widget>[
+            TextField(
+              controller: _firstNameController,
+              enabled: _isEditing,
+              decoration: InputDecoration(
                 labelText: 'First Name',
-                controller: _firstNameController,
                 errorText: _validationErrors['firstName'],
               ),
-              _buildTextField(
+            ),
+            TextField(
+              controller: _lastNameController,
+              enabled: _isEditing,
+              decoration: InputDecoration(
                 labelText: 'Last Name',
-                controller: _lastNameController,
                 errorText: _validationErrors['lastName'],
               ),
-              _buildTextField(
-                labelText: 'Phone',
-                controller: _phoneController,
-                errorText: _validationErrors['phone'],
+            ),
+            TextField(
+              controller: _phoneController,
+              enabled: _isEditing,
+              decoration: InputDecoration(
+                labelText: 'Phone Number',
+                errorText: _validationErrors['phoneNo'],
               ),
-              _buildTextField(
+            ),
+            TextField(
+              controller: _emailController,
+              enabled: _isEditing,
+              decoration: InputDecoration(
                 labelText: 'Email',
-                controller: _emailController,
                 errorText: _validationErrors['email'],
               ),
-              _buildTextField(
-                labelText: 'PAN No',
-                controller: _panController,
+            ),
+            TextField(
+              controller: _panController,
+              enabled: _isEditing,
+              decoration: InputDecoration(
+                labelText: 'PAN Number',
                 errorText: _validationErrors['panNo'],
               ),
-              _buildTextField(
+            ),
+            TextField(
+              controller: _passwordController,
+              enabled: _isEditing,
+              decoration: InputDecoration(
                 labelText: 'Password',
-                controller: _passwordController,
-                errorText: _validationErrors['password'],
               ),
-              _buildTextField(
+            ),
+            TextField(
+              controller: _permanentAddressController,
+              enabled: _isEditing,
+              decoration: InputDecoration(
                 labelText: 'Permanent Address',
-                controller: _permanentAddressController,
                 errorText: _validationErrors['permanentAddress'],
               ),
-              _buildTextField(
+            ),
+            TextField(
+              controller: _residentialAddressController,
+              enabled: _isEditing,
+              decoration: InputDecoration(
                 labelText: 'Residential Address',
-                controller: _residentialAddressController,
                 errorText: _validationErrors['residentialAddress'],
               ),
-              _buildTextField(
+            ),
+            TextField(
+              controller: _dobController,
+              enabled: _isEditing,
+              decoration: InputDecoration(
                 labelText: 'Date of Birth',
-                controller: _dobController,
                 errorText: _validationErrors['dob'],
               ),
-              _buildTextField(
-                labelText: 'Display Picture URL',
-                controller: _dpImageUrlController,
-                errorText: _validationErrors['dpImageUrl'],
+            ),
+            TextField(
+              controller: _dpImageUrlController,
+              enabled: _isEditing,
+              decoration: InputDecoration(
+                labelText: 'DP Image URL',
               ),
-              _buildTextField(
+            ),
+            TextField(
+              controller: _supportUrlController,
+              enabled: _isEditing,
+              decoration: InputDecoration(
                 labelText: 'Support URL',
-                controller: _supportUrlController,
-                errorText: _validationErrors['supportUrl'],
               ),
-              _buildTextField(
-                labelText: 'Aadhar No',
-                controller: _aadharNoController,
-                errorText: _validationErrors['aadharNo'],
+            ),
+            TextField(
+              controller: _aadharNoController,
+              enabled: _isEditing,
+              decoration: InputDecoration(
+                labelText: 'Aadhar Number',
               ),
-              _buildTextField(
+            ),
+            TextField(
+              controller: _aadharImageUrlController,
+              enabled: _isEditing,
+              decoration: InputDecoration(
                 labelText: 'Aadhar Image URL',
-                controller: _aadharImageUrlController,
-                errorText: _validationErrors['aadharImageUrl'],
               ),
-              _buildTextField(
+            ),
+            TextField(
+              controller: _joiningDateController,
+              enabled: _isEditing,
+              decoration: InputDecoration(
                 labelText: 'Joining Date',
-                controller: _joiningDateController,
                 errorText: _validationErrors['joiningDate'],
               ),
-              _buildTextField(
+            ),
+            TextField(
+              controller: _employeeIdController,
+              enabled: _isEditing,
+              decoration: InputDecoration(
                 labelText: 'Employee ID',
-                controller: _employeeIdController,
                 errorText: _validationErrors['employeeId'],
               ),
-              _buildTextField(
+            ),
+            TextField(
+              controller: _bankNameController,
+              enabled: _isEditing,
+              decoration: InputDecoration(
                 labelText: 'Bank Name',
-                controller: _bankNameController,
                 errorText: _validationErrors['bankName'],
               ),
-              _buildTextField(
+            ),
+            TextField(
+              controller: _accountNumberController,
+              enabled: _isEditing,
+              decoration: InputDecoration(
                 labelText: 'Account Number',
-                controller: _accountNumberController,
                 errorText: _validationErrors['accountNumber'],
               ),
-              _buildTextField(
+            ),
+            TextField(
+              controller: _ifscCodeController,
+              enabled: _isEditing,
+              decoration: InputDecoration(
                 labelText: 'IFSC Code',
-                controller: _ifscCodeController,
                 errorText: _validationErrors['ifscCode'],
               ),
-              SizedBox(height: 16.0),
-              _isEditing
-                  ? Column(
-                      children: <Widget>[
-                        ElevatedButton(
-                          onPressed: () {
-                            if (_validateInputs()) {
-                              // Save data to Firestore here
-                              Navigator.of(context).pop();
-                            }
-                          },
-                          child: Text('Save'),
-                        ),
-                        ElevatedButton(
-                          onPressed: () {
-                            setState(() {
-                              _isEditing = false;
-                            });
-                          },
-                          child: Text('Cancel'),
-                        ),
-                      ],
-                    )
-                  : ElevatedButton(
-                      onPressed: () {
-                        setState(() {
-                          _isEditing = true;
-                        });
-                      },
-                      child: Text('Edit'),
-                    ),
-            ],
+            ),
+            DropdownButtonFormField<String>(
+              value: _selectedDepartment,
+              onChanged: _isEditing ? (value) => setState(() => _selectedDepartment = value!) : null,
+              items: <String>['Department 1', 'Department 2', 'Department 3'].map((String value) {
+                return DropdownMenuItem<String>(
+                  value: value,
+                  child: Text(value),
+                );
+              }).toList(),
+              decoration: InputDecoration(
+                labelText: 'Department',
+              ),
+            ),
+            DropdownButtonFormField<String>(
+              value: _selectedDesignation,
+              onChanged: _isEditing ? (value) => setState(() => _selectedDesignation = value!) : null,
+              items: <String>['Designation 1', 'Designation 2', 'Designation 3'].map((String value) {
+                return DropdownMenuItem<String>(
+                  value: value,
+                  child: Text(value),
+                );
+              }).toList(),
+              decoration: InputDecoration(
+                labelText: 'Designation',
+              ),
+            ),
+            DropdownButtonFormField<String>(
+              value: _selectedLocation,
+              onChanged: _isEditing ? (value) => setState(() => _selectedLocation = value!) : null,
+              items: <String>['Location 1', 'Location 2', 'Location 3'].map((String value) {
+                return DropdownMenuItem<String>(
+                  value: value,
+                  child: Text(value),
+                );
+              }).toList(),
+              decoration: InputDecoration(
+                labelText: 'Location',
+              ),
+            ),
+            DropdownButtonFormField<String>(
+              value: _selectedStatus,
+              onChanged: _isEditing ? (value) => setState(() => _selectedStatus = value!) : null,
+              items: <String>['Status 1', 'Status 2', 'Status 3'].map((String value) {
+                return DropdownMenuItem<String>(
+                  value: value,
+                  child: Text(value),
+                );
+              }).toList(),
+              decoration: InputDecoration(
+                labelText: 'Status',
+              ),
+            ),
+            DropdownButtonFormField<String>(
+              value: _selectedRole,
+              onChanged: _isEditing ? (value) => setState(() => _selectedRole = value!) : null,
+              items: <String>['Role 1', 'Role 2', 'Role 3'].map((String value) {
+                return DropdownMenuItem<String>(
+                  value: value,
+                  child: Text(value),
+                );
+              }).toList(),
+              decoration: InputDecoration(
+                labelText: 'Role',
+              ),
+            ),
+            DropdownButtonFormField<String>(
+              value: _selectedEmployeeType,
+              onChanged: _isEditing ? (value) => setState(() => _selectedEmployeeType = value!) : null,
+              items: <String>['Employee Type 1', 'Employee Type 2', 'Employee Type 3'].map((String value) {
+                return DropdownMenuItem<String>(
+                  value: value,
+                  child: Text(value),
+                );
+              }).toList(),
+              decoration: InputDecoration(
+                labelText: 'Employee Type',
+              ),
+            ),
+          ],
+        ),
+      ),
+      actions: <Widget>[
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: Text('Cancel'),
+        ),
+        if (_isEditing)
+          TextButton(
+            onPressed: _updateEmployeeData,
+            child: Text('Save'),
           ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildTextField({
-    required String labelText,
-    required TextEditingController controller,
-    String? errorText,
-  }) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 16.0),
-      child: TextField(
-        controller: controller,
-        decoration: InputDecoration(
-          labelText: labelText,
-          errorText: errorText,
-        ),
-      ),
+        if (!_isEditing)
+          TextButton(
+            onPressed: () => setState(() => _isEditing = true),
+            child: Text('Edit'),
+          ),
+      ],
     );
   }
 }

@@ -1,26 +1,35 @@
-import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
+import 'package:firebase_core/firebase_core.dart';
 import 'package:provider/provider.dart';
-
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'firebase_options.dart';
 import 'hr_dashboard_page.dart';
 import 'services/auth_service.dart';
 import 'services/dark_mode.dart';
 import 'signup_page.dart';
-import 'admin_dashboard_page.dart';  // Import the admin.dart file
+import 'admin_dashboard_page.dart';
 import 'services/company_name_service.dart';
+import 'services/logo_service.dart';
+
+Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
+  await Firebase.initializeApp();
+  print('Handling a background message: ${message.messageId}');
+}
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
+
+  FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
+
   runApp(const OoribaApp());
 }
 
 class OoribaApp extends StatelessWidget {
-  const OoribaApp({super.key});
+  const OoribaApp({Key? key}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
@@ -28,9 +37,10 @@ class OoribaApp extends StatelessWidget {
       providers: [
         ChangeNotifierProvider(create: (_) => DarkModeService()),
         ChangeNotifierProvider(create: (_) => CompanyNameService()),
+        ChangeNotifierProvider(create: (_) => LogoService()),
       ],
-      child: Consumer2<DarkModeService, CompanyNameService>(
-        builder: (context, darkModeService, companyNameService, _) {
+      child: Consumer3<DarkModeService, CompanyNameService, LogoService>(
+        builder: (context, darkModeService, companyNameService, logoService, _) {
           return MaterialApp(
             debugShowCheckedModeBanner: false,
             title: companyNameService.companyName,
@@ -42,7 +52,8 @@ class OoribaApp extends StatelessWidget {
               primarySwatch: Colors.blue,
               brightness: Brightness.dark,
             ),
-            themeMode: darkModeService.isDarkMode ? ThemeMode.dark : ThemeMode.light,
+            themeMode:
+                darkModeService.isDarkMode ? ThemeMode.dark : ThemeMode.light,
             home: LoginPage(),
           );
         },
@@ -52,15 +63,22 @@ class OoribaApp extends StatelessWidget {
 }
 
 class LoginPage extends StatelessWidget {
-  LoginPage({super.key});
+  LoginPage({Key? key}) : super(key: key);
 
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
+
+  final FirebaseMessaging _firebaseMessaging = FirebaseMessaging.instance;
 
   @override
   Widget build(BuildContext context) {
     final darkModeService = Provider.of<DarkModeService>(context, listen: false);
     final companyNameService = Provider.of<CompanyNameService>(context);
+    final logoService = Provider.of<LogoService>(context);
+
+    // Requesting permissions for handling notifications
+    _firebaseMessaging.requestPermission();
+
     return Scaffold(
       appBar: AppBar(
         title: Text(companyNameService.companyName),
@@ -101,9 +119,27 @@ class LoginPage extends StatelessWidget {
                       children: <Widget>[
                         Text(
                           'Welcome To ${companyNameService.companyName}',
-                          style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+                          style: const TextStyle(
+                              fontSize: 24, fontWeight: FontWeight.bold),
                         ),
-                        const SizedBox(height: 40),
+                        const SizedBox(height: 20),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: <Widget>[
+                            logoService.logo != null
+                                ? Image.file(
+                                    logoService.logo!,
+                                    width: 200,
+                                    height: 190,
+                                  )
+                                : Image.asset(
+                                    'assets/images/companyLogo.png',
+                                    width: 200,
+                                    height: 190,
+                                  ),
+                          ],
+                        ),
+                        const SizedBox(height: 20),
                         TextField(
                           controller: _emailController,
                           decoration: const InputDecoration(
@@ -128,7 +164,8 @@ class LoginPage extends StatelessWidget {
                             onPressed: () {
                               Navigator.push(
                                 context,
-                                MaterialPageRoute(builder: (context) => HRDashboardPage()),
+                                MaterialPageRoute(
+                                    builder: (context) => HRDashboardPage()),
                               );
                             },
                             child: const Text('Forgot Password'),
@@ -149,7 +186,11 @@ class LoginPage extends StatelessWidget {
                         RichText(
                           text: TextSpan(
                             text: "Don't have an account? ",
-                            style: TextStyle(color: Theme.of(context).textTheme.bodyLarge!.color),
+                            style: TextStyle(
+                                color: Theme.of(context)
+                                    .textTheme
+                                    .bodyLarge!
+                                    .color),
                             children: [
                               TextSpan(
                                 text: 'Sign Up here',
@@ -161,7 +202,9 @@ class LoginPage extends StatelessWidget {
                                   ..onTap = () {
                                     Navigator.push(
                                       context,
-                                      MaterialPageRoute(builder: (context) => const SignUpPage()),
+                                      MaterialPageRoute(
+                                          builder: (context) =>
+                                              const SignUpPage()),
                                     );
                                   },
                               ),
@@ -173,7 +216,8 @@ class LoginPage extends StatelessWidget {
                           onPressed: () {
                             Navigator.push(
                               context,
-                              MaterialPageRoute(builder: (context) => AdminDashboardPage()), // Navigate to AdminDashboardPage
+                              MaterialPageRoute(
+                                  builder: (context) => AdminDashboardPage()),
                             );
                           },
                           child: const Text('Admin'),

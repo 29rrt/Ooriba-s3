@@ -10,6 +10,8 @@ class CompanyNameService with ChangeNotifier {
 
   String get companyName => _companyName;
 
+  String? get companyLogoUrl => null;
+
   Future<void> _loadCompanyName() async {
     DocumentSnapshot documentSnapshot = await FirebaseFirestore.instance
         .collection('Config')
@@ -26,4 +28,6 @@ class CompanyNameService with ChangeNotifier {
     _companyName = name;
     notifyListeners();
   }
+
+  void setCompanyLogoUrl(String logoUrl) {}
 }
