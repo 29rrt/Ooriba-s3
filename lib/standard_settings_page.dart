@@ -15,11 +15,12 @@ class StandardSettingsPage extends StatefulWidget {
 class _StandardSettingsPageState extends State<StandardSettingsPage> {
   final TextEditingController _companyNameController = TextEditingController();
   final TextEditingController _locationNameController = TextEditingController();
-  final TextEditingController _locationPrefixController = TextEditingController();
+  final TextEditingController _locationCodeController = TextEditingController();
   final TextEditingController _locationLatController = TextEditingController();
   final TextEditingController _locationLngController = TextEditingController();
   final TextEditingController _departmentController = TextEditingController();
   final TextEditingController _leaveTypeController = TextEditingController();
+  final TextEditingController _workingDaysController = TextEditingController();
 
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   List<Map<String, dynamic>> _locations = [];
@@ -28,6 +29,19 @@ class _StandardSettingsPageState extends State<StandardSettingsPage> {
   late LocationService _locationService;
   late DepartmentService _departmentService;
   late LeaveTypeService _leaveTypeService;
+
+  String _selectedHoliday = 'Sunday';
+  List<String> _daysOfWeek = [
+    'Sunday',
+    'Monday',
+    'Tuesday',
+    'Wednesday',
+    'Thursday',
+    'Friday',
+    'Saturday'
+  ];
+
+  String? _editingLocationName;
 
   @override
   void initState() {
@@ -55,8 +69,10 @@ class _StandardSettingsPageState extends State<StandardSettingsPage> {
       _locations = querySnapshot.docs.map((doc) {
         return {
           'name': doc.id,
-          'prefix': doc['prefix'],
+          'code': doc['code'],
           'coordinates': doc['coordinates'],
+          'working_days': doc['working_days'],
+          'holiday': doc['holiday'],
         };
       }).toList();
     });
@@ -91,29 +107,73 @@ class _StandardSettingsPageState extends State<StandardSettingsPage> {
 
   Future<void> _addLocation() async {
     String locationName = _locationNameController.text;
-    String prefix = _locationPrefixController.text;
+    String code = _locationCodeController.text;
     double latitude = double.parse(_locationLatController.text);
     double longitude = double.parse(_locationLngController.text);
+    int workingDays = int.parse(_workingDaysController.text);
+    String holiday = _selectedHoliday;
 
     await _firestore.collection('Locations').doc(locationName).set({
-      'prefix': prefix,
+      'code': code,
       'coordinates': GeoPoint(latitude, longitude),
+      'working_days': workingDays,
+      'holiday': holiday,
     });
 
     setState(() {
       _locations.add({
         'name': locationName,
-        'prefix': prefix,
+        'code': code,
         'coordinates': GeoPoint(latitude, longitude),
+        'working_days': workingDays,
+        'holiday': holiday,
       });
       _locationNameController.clear();
-      _locationPrefixController.clear();
+      _locationCodeController.clear();
       _locationLatController.clear();
       _locationLngController.clear();
+      _workingDaysController.clear();
+      _selectedHoliday = 'Sunday';
+    });
+  }
+
+  Future<void> _editLocation(String locationName) async {
+    if (_editingLocationName == null) return;
+
+    String code = _locationCodeController.text;
+    double latitude = double.parse(_locationLatController.text);
+    double longitude = double.parse(_locationLngController.text);
+    int workingDays = int.parse(_workingDaysController.text);
+    String holiday = _selectedHoliday;
+
+    await _firestore.collection('Locations').doc(_editingLocationName).update({
+      'code': code,
+      'coordinates': GeoPoint(latitude, longitude),
+      'working_days': workingDays,
+      'holiday': holiday,
+    });
+
+    setState(() {
+      int index = _locations.indexWhere((location) => location['name'] == _editingLocationName);
+      _locations[index] = {
+        'name': locationName,
+        'code': code,
+        'coordinates': GeoPoint(latitude, longitude),
+        'working_days': workingDays,
+        'holiday': holiday,
+      };
+      _locationNameController.clear();
+      _locationCodeController.clear();
+      _locationLatController.clear();
+      _locationLngController.clear();
+      _workingDaysController.clear();
+      _selectedHoliday = 'Sunday';
+      _editingLocationName = null;
     });
   }
 
   Future<void> _deleteLocation(String name) async {
+    // Ensure the location is not used before deleting
     if (_locations.indexWhere((location) => location['name'] == name) < 3) {
       _showImportantElementAlert();
       return;
@@ -252,8 +312,8 @@ class _StandardSettingsPageState extends State<StandardSettingsPage> {
                 decoration: const InputDecoration(labelText: 'Location Name'),
               ),
               TextField(
-                controller: _locationPrefixController,
-                decoration: const InputDecoration(labelText: 'Location Prefix'),
+                controller: _locationCodeController,
+                decoration: const InputDecoration(labelText: 'Location Code'),
               ),
               TextField(
                 controller: _locationLatController,
@@ -263,15 +323,46 @@ class _StandardSettingsPageState extends State<StandardSettingsPage> {
                 controller: _locationLngController,
                 decoration: const InputDecoration(labelText: 'Longitude'),
               ),
+              TextField(
+                controller: _workingDaysController,
+                decoration: const InputDecoration(labelText: 'No. of Working Days'),
+              ),
+              const SizedBox(height: 10),
+              DropdownButtonFormField<String>(
+                value: _selectedHoliday,
+                decoration: const InputDecoration(labelText: 'Holiday of the Week'),
+                items: _daysOfWeek.map((String day) {
+                  return DropdownMenuItem<String>(
+                    value: day,
+                    child: Text(day),
+                  );
+                }).toList(),
+                onChanged: (String? newValue) {
+                  setState(() {
+                    _selectedHoliday = newValue!;
+                  });
+                },
+              ),
               const SizedBox(height: 10),
               ElevatedButton(
                 onPressed: () async {
-                  await _addLocation();
+                  if (_locationNameController.text.isEmpty) {
+                    // Handle empty location name error
+                    return;
+                  }
+
+                  if (_editingLocationName != null) {
+                    // Edit existing location
+                    await _editLocation(_locationNameController.text);
+                  } else {
+                    // Add new location
+                    await _addLocation();
+                  }
                 },
-                child: const Text('Add Location'),
+                child: const Text('Save Location'),
               ),
               const SizedBox(height: 10),
-              _buildListView(_locations, 'Locations', _deleteLocation),
+              _buildListView(_locations, 'Locations', _deleteLocation, _editLocation),
               const SizedBox(height: 20),
               const Text(
                 'Departments',
@@ -289,7 +380,7 @@ class _StandardSettingsPageState extends State<StandardSettingsPage> {
                 child: const Text('Add Department'),
               ),
               const SizedBox(height: 10),
-              _buildListView(_departments, 'Departments', _deleteDepartment),
+              _buildListView(_departments, 'Departments', _deleteDepartment, null),
               const SizedBox(height: 20),
               const Text(
                 'Leave Types',
@@ -307,7 +398,7 @@ class _StandardSettingsPageState extends State<StandardSettingsPage> {
                 child: const Text('Add Leave Type'),
               ),
               const SizedBox(height: 10),
-              _buildListView(_leaveTypes, 'Leave Types', _deleteLeaveType),
+              _buildListView(_leaveTypes, 'Leave Types', _deleteLeaveType, null),
             ],
           ),
         ),
@@ -315,7 +406,7 @@ class _StandardSettingsPageState extends State<StandardSettingsPage> {
     );
   }
 
-  Widget _buildListView(List items, String label, Function(String) deleteFunction) {
+  Widget _buildListView(List items, String label, Function(String) deleteFunction, Function(String)? editFunction) {
     return ListView.builder(
       shrinkWrap: true,
       physics: NeverScrollableScrollPhysics(),
@@ -325,13 +416,33 @@ class _StandardSettingsPageState extends State<StandardSettingsPage> {
         return ListTile(
           title: item is String ? Text(item) : Text(item['name']),
           subtitle: item is Map ? Text(
-            'Prefix: ${item['prefix']}\nCoordinates: ${item['coordinates'].latitude}, ${item['coordinates'].longitude}',
+            'Code: ${item['code']}\nCoordinates: ${item['coordinates'].latitude}, ${item['coordinates'].longitude}\nWorking Days: ${item['working_days']}\nHoliday: ${item['holiday']}',
           ) : null,
-          trailing: IconButton(
-            icon: const Icon(Icons.delete),
-            onPressed: () async {
-              await deleteFunction(item is String ? item : item['name']);
-            },
+          trailing: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (editFunction != null)
+                IconButton(
+                  icon: const Icon(Icons.edit),
+                  onPressed: () {
+                    setState(() {
+                      _editingLocationName = item['name'];
+                      _locationNameController.text = item['name'];
+                      _locationCodeController.text = item['code'];
+                      _locationLatController.text = item['coordinates'].latitude.toString();
+                      _locationLngController.text = item['coordinates'].longitude.toString();
+                      _workingDaysController.text = item['working_days'].toString();
+                      _selectedHoliday = item['holiday'];
+                    });
+                  },
+                ),
+              IconButton(
+                icon: const Icon(Icons.delete),
+                onPressed: () async {
+                  await deleteFunction(item is String ? item : item['name']);
+                },
+              ),
+            ],
           ),
         );
       },
