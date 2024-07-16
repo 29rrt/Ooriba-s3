@@ -6,6 +6,7 @@ import 'services/location_service.dart';
 import 'services/department_service.dart';
 import 'services/leave_type_service.dart';
 import 'services/logo_service.dart';
+import 'services/designation_service.dart'; // Import the designation service
 
 class StandardSettingsPage extends StatefulWidget {
   @override
@@ -21,14 +22,17 @@ class _StandardSettingsPageState extends State<StandardSettingsPage> {
   final TextEditingController _departmentController = TextEditingController();
   final TextEditingController _leaveTypeController = TextEditingController();
   final TextEditingController _workingDaysController = TextEditingController();
+  final TextEditingController _designationController = TextEditingController(); // Add designation controller
 
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   List<Map<String, dynamic>> _locations = [];
   List<String> _departments = [];
   List<String> _leaveTypes = [];
+  List<String> _designations = []; // Add designation list
   late LocationService _locationService;
   late DepartmentService _departmentService;
   late LeaveTypeService _leaveTypeService;
+  late DesignationService _designationService; // Add designation service
 
   String _selectedHoliday = 'Sunday';
   List<String> _daysOfWeek = [
@@ -49,10 +53,12 @@ class _StandardSettingsPageState extends State<StandardSettingsPage> {
     _locationService = LocationService();
     _departmentService = DepartmentService();
     _leaveTypeService = LeaveTypeService();
+    _designationService = DesignationService(); // Initialize designation service
     _loadCompanyName();
     _loadLocations();
     _loadDepartments();
     _loadLeaveTypes();
+    _loadDesignations(); // Load designations
   }
 
   Future<void> _loadCompanyName() async {
@@ -89,6 +95,13 @@ class _StandardSettingsPageState extends State<StandardSettingsPage> {
     List<String> leaveTypes = await _leaveTypeService.getLeaveTypes();
     setState(() {
       _leaveTypes = leaveTypes;
+    });
+  }
+
+  Future<void> _loadDesignations() async {
+    List<String> designations = await _designationService.getDesignations();
+    setState(() {
+      _designations = designations;
     });
   }
 
@@ -231,6 +244,30 @@ class _StandardSettingsPageState extends State<StandardSettingsPage> {
 
     setState(() {
       _leaveTypes.removeWhere((leaveType) => leaveType == name);
+    });
+  }
+
+  Future<void> _addDesignation() async {
+    String designationName = _designationController.text;
+
+    await _designationService.addDesignation(designationName);
+
+    setState(() {
+      _designations.add(designationName);
+      _designationController.clear();
+    });
+  }
+
+  Future<void> _deleteDesignation(String name) async {
+    if (_designations.indexOf(name) < 3) {
+      _showImportantElementAlert();
+      return;
+    }
+
+    await _designationService.deleteDesignation(name);
+
+    setState(() {
+      _designations.removeWhere((designation) => designation == name);
     });
   }
 
@@ -381,6 +418,24 @@ class _StandardSettingsPageState extends State<StandardSettingsPage> {
               ),
               const SizedBox(height: 10),
               _buildListView(_departments, 'Departments', _deleteDepartment, null),
+              const SizedBox(height: 20),
+              const Text(
+                'Designations',
+                style: TextStyle(fontSize: 30, fontWeight: FontWeight.bold),
+              ),
+              TextField(
+                controller: _designationController,
+                decoration: const InputDecoration(labelText: 'Designation'),
+              ),
+              const SizedBox(height: 10),
+              ElevatedButton(
+                onPressed: () async {
+                  await _addDesignation();
+                },
+                child: const Text('Add Designation'),
+              ),
+              const SizedBox(height: 10),
+              _buildListView(_designations, 'Designations', _deleteDesignation, null),
               const SizedBox(height: 20),
               const Text(
                 'Leave Types',
